@@ -1,3 +1,7 @@
 <%inherit file="base.html"/>
 
-gexus landing page
+<ul>
+% for a in gamesAvail:
+    <li>${a.name | h} - ${a.description | h} - <a href=${a.id | u}>go</a> </li>
+% endfor
+</ul>
