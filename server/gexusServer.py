@@ -27,15 +27,15 @@ def runGame(gameName, gameLogic, gameData, gameInput):
     
     print "Running game thread for " + gameName
     
-    ## if this is too small, the webserver thread is blocked too often
-    deltaT = 0.1
+    # # if this is too small, the webserver thread is blocked too often
+    deltaT = 1.0
     
     while True:
-        print "Executing logic of game " + gameName
+        # print "Executing logic of game " + gameName
         gameLogic.execute(gameData, gameInput, deltaT)
         
         
-        cherrypy.engine.publish('websocket-broadcast', gameData.asJson())
+        # cherrypy.engine.publish('websocket-broadcast', gameData.asJson())
         time.sleep(deltaT)
     
     pass
@@ -98,13 +98,25 @@ class Evader (CherryExposedBase):
     def gameState(self):
         # mytemplate = self.getTemplate("space_evader/evader_view.html")
         # return mytemplate.render()
-        jsonState = self.gData.asJson()
+        taskForPlayer = 0
+        
+        for ts in self.gData.currentTasks:
+            if ts.shownToPlayer == 0:
+                taskForPlayer = ts
+        
+        gs = { "playerTask": taskForPlayer.__dict__}
+        
+        jsonState = json.dumps(gs) 
         return jsonState
 
     # the call http://localhost:8080/GameOne/input/23/23 is mapped to this one !
     @cherrypy.expose
     def move(self, direction):
         self.setPlayerInput(direction)
+        
+    @cherrypy.expose
+    def controlActivate(self, controlId):
+        self.setPlayerInput("activate" + str(controlId))
 
     def setPlayerInput(self, move):
         with self.gInput.lock:
@@ -119,55 +131,71 @@ class EvaderLogic(object):
     def __init__(self):
         pass
     
-    def spawnBoxes (self, layers, offset):
-        
-        boxList = []
-        
-        for i in range( layers ):            
-            for bi in range( 5 ):
-                if random.randint(0, 2) == 0:
-                    boxList += [ Box ( bi, i + offset )]
-
-        return boxList
-                
-        
+    def generateTasks (self , gameData):
+        if not gameData.hasTasks (0):
+            print "generating task"
+            
+            taskNum = random.randint(0, 4)
+            gameData.currentTasks += [ Task("Activate " + str(taskNum), "activate" + str(taskNum), 0, 10) ]
     
     def execute(self, gameData, gameInput, timeDelta):
-        boxSpeed = 10.0
-        maxXLow = 0.0
-        maxXHigh = 4.0
-        
-        # get a thread safe copy of the input, web threads might chance this
-        
         with gameInput.lock:
             localGameInput = copy.deepcopy (gameInput.content)
         
-        # remove boxes below -5
+        print "Current tasks in list" + str (len (gameData.currentTasks))
         
+        for t in gameData.currentTasks:
+            if not t.isComplete:
+                if t.doesMatch (localGameInput):
+                    t.complete()
+                    print "Task completed"
+                else:
+                    t.timeRunning += timeDelta
         
-        # move boxes
-        for b in gameData.boxes:
-            b.location = (b.location[1] - timeDelta * boxSpeed, b.location[1])
-        
-        # apply player movements
-        print localGameInput
-        for (pId, pIn) in localGameInput.iteritems():
-            gameData.playerLocation [ pId ] = pIn
-            #if (pIn == "up"):
+        self.generateTasks(gameData)
+            # if (pIn == "up"):
             #    gameData.playerLocation [ pId ] = maxXHigh
-            #if (pIn == "middle"):
+            # if (pIn == "middle"):
             #    gameData.playerLocation [ pId ] = (maxXHigh - maxXLow) * 0.5
-            #if (pIn == "down"):
+            # if (pIn == "down"):
             #    gameData.playerLocation [ pId ] = maxXLow
+
+class Task(object):
+    def __init__(self, taskName, action, shownToPlayer, maxTime):
+        self.taskName = taskName
+        self.neededAction = action
+        self.shownToPlayer = shownToPlayer
+        self.maxTime = maxTime
+        self.timeRunning = 0.0
+        self.isComplete = False
+    
+    def complete (self):
+        self.isComplete = True
+    
+    def doesMatch(self, actionList):
+        print actionList
+        for ( pid, ac) in actionList.iteritems():
+            print self.neededAction
+            if ac == self.neededAction:
+                return True
+        return False
 
 class EvaderData(object):
     def __init__(self):
         self.playerLocation = {}
         self.boxes = []
+        self.currentTasks = []
         pass
     # # make thread safe
     def asJson(self):
-        return json.dumps ({ "player" : self.playerLocation, "boxes" : self.boxes })
+        # return json.dumps ({ "player" : self.playerLocation, "boxes" : self.boxes })
+        return json.dumps (self.currentTasks)
+    
+    def hasTasks (self, playerId):
+        for t in self.currentTasks:
+            if (t.shownToPlayer == playerId) and (not t.isComplete):
+                return True
+        return False
 
 class EvaderInput(object):
     def __init__(self):

@@ -4,7 +4,7 @@ function fireGet(target) {
 	xmlHttp.send();
 }
 
-function checkForPositions() {
+function checkForTask() {
 	console.log("loading game state");
 	xmlHttp = new XMLHttpRequest();
 	if (xmlHttp) {
@@ -14,8 +14,13 @@ function checkForPositions() {
 				gameData = JSON.parse(xmlHttp.responseText);
 				// document.write( gameData["player"][0] );
 				// = gameData["player"][0];
-				playerRep = document.getElementById("view")
-				playerRep.style.left = 100 - (gameData["player"][0] * 8.0);
+				playerTask = document.getElementById("playerTask");
+				// playerRep.style.left = 100 - (gameData["player"][0] * 8.0);
+				if (gameData.playerTask == 0) {
+					playerTask.innerHTML = "- no task - ";
+				} else {
+					playerTask.innerHTML = gameData.playerTask.taskName;
+				}
 				// alert(gameData["player"][0]);
 			}
 		};
@@ -45,7 +50,7 @@ function initWebSocket() {
 		};
 		ws.onmessage = function(evt) {
 			var received_msg = evt.data;
-			//console.log("Message is received...");
+			// console.log("Message is received...");
 
 			gameData = JSON.parse(received_msg);
 			playerRep = document.getElementById("view");
@@ -62,9 +67,9 @@ function initWebSocket() {
 }
 
 function enableGameStateCallback() {
-	WebSocketTest();
-	initWebSocket();
-	// window.setInterval(checkForPositions, 20);
+	// WebSocketTest();
+	// initWebSocket();
+	window.setInterval(checkForTask, 1000);
 	console.log("interval set");
 
 }
