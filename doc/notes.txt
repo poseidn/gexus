@@ -1,2 +1,31 @@
 - use no text / language at all -- if possible
 AS few hints as possible, players must discover how stuff works
+
+players control buttons on the smart phone have the same color as the player entity on screen
+
+First speed tests with android 2.3 over WLAN show that:
+
+Android browser has quite a lag ( ~ 1 s )
+the firefox for and is better ( ~ 500 ms ) but multiple clicks after one another does not work very well
+
+"high speed questions seem to be out of the question with this. no pong ?
+
+Will a native android app be a lot faster ?
+
+Game which might still be possibe ?
+
+- Tetris 
+- "Hit the rabbit"
+   -> 6 pads on the phone and a rabit shows up and player be the first to hit
+   
+- round based action
+    tank wars ! can have a lot of players on both sides: just more tanks
+    each player can fire only every n seconds
+    
+- evade game
+    move up down or in the middle to evade incomping blocks
+    multiple people can play at the same time
+    
+- enterprise fernsteuerung 
+    just like this game http://www.youtube.com/watch?v=aBfHhfxLNPE ?
+    

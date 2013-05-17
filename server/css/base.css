@@ -28,6 +28,12 @@ A:hover {
 	width: 100%;
 }
 
+#EvaderControlArea {
+    background-color: #333333;
+    height: 100%;
+    width: 100%;
+}
+
 .PongControl {
 	/* fix to make the size of the border go inwards instead*/
 	-webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
@@ -51,4 +57,29 @@ A:hover {
 	background-color: #666666;
 	border-width: 5px;
 	border-color: #aaaaaa;
+}
+
+.EvaderControl {
+    /* fix to make the size of the border go inwards instead*/
+    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
+    -moz-box-sizing: border-box; /* Firefox, other Gecko */
+    box-sizing: border-box; /* Opera/IE 8+ */
+    
+    height: 33.3%;
+    width: 100%;
+    border-style: solid;
+    border-width: 2%;
+    border-color: #aaaaaa;
+    background-color: #666666;
+    /*margin: 5%;
+    padding: 20px;
+    padding-top: 40px;
+    padding-bottom: 40px;*/
+    font-size: x-large;
+    vertical-align: center;
+    text-align: center;
+    background-color: #666666;
+    background-color: #666666;
+    border-width: 5px;
+    border-color: #aaaaaa;
 }
