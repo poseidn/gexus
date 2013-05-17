@@ -6,6 +6,8 @@ import thread
 import threading
 import json
 import random
+import uuid
+import time
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
@@ -23,14 +25,14 @@ class ChatWebSocketHandler(WebSocket):
     def closed(self, code, reason="A client left the room without a proper explanation."):
         cherrypy.engine.publish('websocket-broadcast', TextMessage(reason))
 
-def runGame(gameName, gameLogic, gameData, gameInput):
+def runGame(gameName, gameLogic, gameData, gameInput, terminate):
     
     print "Running game thread for " + gameName
     
     # # if this is too small, the webserver thread is blocked too often
-    deltaT = 1.0
+    deltaT = 1.1
     
-    while True:
+    while not terminate:
         # print "Executing logic of game " + gameName
         gameLogic.execute(gameData, gameInput, deltaT)
         
@@ -95,32 +97,44 @@ class Evader (CherryExposedBase):
         return mytemplate.render()
 
     @cherrypy.expose
-    def gameState(self):
+    def gameState(self, playerId):
         # mytemplate = self.getTemplate("space_evader/evader_view.html")
         # return mytemplate.render()
         taskForPlayer = 0
         
         for ts in self.gData.currentTasks:
-            if ts.shownToPlayer == 0:
+            if ts.shownToPlayer == playerId:
                 taskForPlayer = ts
         
-        gs = { "playerTask": taskForPlayer.__dict__}
+        
+        if taskForPlayer == 0:
+            taskForPlayerSer = taskForPlayer
+        else:
+            taskForPlayerSer = taskForPlayer.__dict__
+        
+        gs = { "playerTask": taskForPlayerSer,
+               "playerId" :  playerId}
         
         jsonState = json.dumps(gs) 
         return jsonState
 
-    # the call http://localhost:8080/GameOne/input/23/23 is mapped to this one !
-    @cherrypy.expose
-    def move(self, direction):
-        self.setPlayerInput(direction)
-        
-    @cherrypy.expose
-    def controlActivate(self, controlId):
-        self.setPlayerInput("activate" + str(controlId))
 
-    def setPlayerInput(self, move):
+    @cherrypy.expose
+    def registerPlayer(self):
+        pId = str(uuid.uuid1())
+        
+        ## seconds in float
+        self.gData.player[ pId ] = { time.time() }
+        print "Welcome new player " + pId
+        return pId
+
+    @cherrypy.expose
+    def controlActivate(self, playerId, controlId):
+        self.setPlayerInput(playerId,"activate" + str(controlId))
+
+    def setPlayerInput(self,playerId, move):
         with self.gInput.lock:
-            self.gInput.content [ 0] = move
+            self.gInput.content [ playerId] = move
 
 class Box(object):
     def __init__(self, x, y, sizeX, sizey):
@@ -132,11 +146,12 @@ class EvaderLogic(object):
         pass
     
     def generateTasks (self , gameData):
-        if not gameData.hasTasks (0):
-            print "generating task"
-            
-            taskNum = random.randint(0, 4)
-            gameData.currentTasks += [ Task("Activate " + str(taskNum), "activate" + str(taskNum), 0, 10) ]
+        for (pid, pdata) in gameData.player.iteritems():
+            if not gameData.hasTasks (pid):
+                print "generating task for player " + pid
+                
+                taskNum = random.randint(0, 4)
+                gameData.currentTasks += [ Task("Activate " + str(taskNum), "activate" + str(taskNum), pid, 10) ]
     
     def execute(self, gameData, gameInput, timeDelta):
         with gameInput.lock:
@@ -148,6 +163,7 @@ class EvaderLogic(object):
             if not t.isComplete:
                 if t.doesMatch (localGameInput):
                     t.complete()
+                    
                     print "Task completed"
                 else:
                     t.timeRunning += timeDelta
@@ -174,14 +190,14 @@ class Task(object):
     
     def doesMatch(self, actionList):
         print actionList
-        for ( pid, ac) in actionList.iteritems():
-            print self.neededAction
+        for (pid, ac) in actionList.iteritems():
             if ac == self.neededAction:
                 return True
         return False
 
 class EvaderData(object):
     def __init__(self):
+        self.player = {}
         self.playerLocation = {}
         self.boxes = []
         self.currentTasks = []
@@ -262,19 +278,28 @@ WebSocketPlugin(cherrypy.engine).subscribe()
 cherrypy.tools.websocket = WebSocketTool()
 
 # cherrypy.tree.mount(DoNothing(), '/',
-conf = { '/css/base.css' : {
+
+terminateLogic = False
+
+conf = { 
+         '/css/base.css' : {
                  'tools.staticfile.on': True,
                  'tools.staticfile.filename' : cssPath + 'base.css'
         },
         '/js/base.js' : {
                  'tools.staticfile.on': True,
                  'tools.staticfile.filename' : jsPath + 'base.js'
-                 # 'tools.staticdir.index': 'index.html',
         },
        '/EvaderWs': {
             'tools.websocket.on': True,
-            'tools.websocket.handler_cls': ChatWebSocketHandler
-            }}
+            'tools.websocket.handler_cls': ChatWebSocketHandler},
+        '/' : {
+                 #'tools.sessions.on' : True,
+                 #'tools.sessions.storage_type' : 'file',
+                 #'tools.sessions.storage_path' : "/home/poseidon/tmp/",
+                 #'tools.sessions.timeout' : 60
+        }
+        }
 
 
 
@@ -283,7 +308,9 @@ root.Evader.m_gameData = evaderData
 # webserice can wire here, but must lock
 root.Evader.m_gameInput = evaderInput
 
+terminateLogic = False
 # run game threads
-thread.start_new_thread(runGame, ("evaderThread", evaderLogic, evaderData, evaderInput))
+thread.start_new_thread(runGame, ("evaderThread", evaderLogic, evaderData, evaderInput, terminateLogic))
 
 cherrypy.quickstart(root, config=conf)
+terminateLogic = True

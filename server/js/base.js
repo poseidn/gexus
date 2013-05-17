@@ -4,11 +4,23 @@ function fireGet(target) {
 	xmlHttp.send();
 }
 
+function fireGetSync(target) {
+	xmlHttp = new XMLHttpRequest();
+	xmlHttp.open("GET", target, false);
+	xmlHttp.send( null);
+	
+	return xmlHttp.responseText;
+}
+
+function activateButton( buttonId ) {
+	fireGet( "controlActivate/" + g_userId + "/" +buttonId)
+}
+
 function checkForTask() {
 	console.log("loading game state");
 	xmlHttp = new XMLHttpRequest();
 	if (xmlHttp) {
-		xmlHttp.open('GET', 'gameState', true);
+		xmlHttp.open('GET', 'gameState/' + g_userId, true);
 		xmlHttp.onreadystatechange = function() {
 			if (xmlHttp.readyState == 4) {
 				gameData = JSON.parse(xmlHttp.responseText);
@@ -21,6 +33,9 @@ function checkForTask() {
 				} else {
 					playerTask.innerHTML = gameData.playerTask.taskName;
 				}
+				
+				playerId = document.getElementById("playerId");
+				playerId.innerHTML = gameData.playerId
 				// alert(gameData["player"][0]);
 			}
 		};
@@ -52,8 +67,8 @@ function initWebSocket() {
 			var received_msg = evt.data;
 			// console.log("Message is received...");
 
-			gameData = JSON.parse(received_msg);
-			playerRep = document.getElementById("view");
+			var gameData = JSON.parse(received_msg);
+			var playerRep = document.getElementById("view");
 			playerRep.style.left = 500 - (gameData["player"][0] * 40.0);
 		};
 		ws.onclose = function() {
@@ -69,6 +84,9 @@ function initWebSocket() {
 function enableGameStateCallback() {
 	// WebSocketTest();
 	// initWebSocket();
+	g_userId = fireGetSync("registerPlayer");
+	console.log( "players id will be " + g_userId);
+	
 	window.setInterval(checkForTask, 1000);
 	console.log("interval set");
 
