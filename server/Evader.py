@@ -1,18 +1,68 @@
 import uuid
 import time
 import random
+import threading
+import copy
+
+import Support
+
+class Control(object):
+    def __init__(self, playerId, name, id, type="pushButton", minValue=0, maxValue=10):
+        self.playerId = playerId
+        self.name = name
+        self.id = id
+        self.type = type
+        self.minValue = minValue
+        self.maxValue = maxValue
+    
+    def getActionList (self):
+        if self.type == "pushButton" :
+            # just one possible action
+            # id and user text : warp curvature to 4
+            return [(self.id, self.name)]
+        if self.type == "slider" :
+            # just one possible action
+            # id and user text : warp curvature to 4
+            it = []
+            for i in range(self.maxValue): 
+                it += [(self.id + "_" + str(i), self.name + " to " + str(i))]
+            return it                                 
+
 
 class EvaderLogic(object):
     def __init__(self):
+        
+        self.actionName = ["Purge", "Activate", "Dismantle", "Engage", "Disengage", "Mismatch", "Mess-up"]
+        self.firstName = ["", "", "", "Forward", "Backward", "Minor", "Starbird", "Internal", "External" ]
+        self.secondName = ["Beam", "Fire", "Cooling", "", "", "", "", "", "" ]
+        self.thirdName = ["Manifold", "Confinement", "Shielding", "Extraciter", "Preglobalizer", "Intrarectifier" ]
+        
         pass
     
-    def generateTasks (self , gameData):
+
+    
+    def generateControl(self, gameData, playerId):
+        act = Support.randomFromList(self.actionName)
+        fr = Support.randomFromList(self.firstName)
+        sc = Support.randomFromList(self.secondName)
+        th = Support.randomFromList(self.thirdName)
+        
+        fullName = act + " " + fr + " " + sc + " " + th
+        print "Generated control with name " + fullName
+        return Control(playerId, fullName, str(gameData.getFreeControlId()))
+    
+    def generateTasks (self , gameData, fixedTask=None):
         for (pid, pdata) in gameData.player.iteritems():
             if not gameData.hasTasks (pid):
                 print "generating task for player " + pid
                 
-                taskNum = random.randint(0, 4)
-                gameData.currentTasks += [ Task("Activate " + str(taskNum), "activate" + str(taskNum), pid, 10) ]
+                acts = gameData.getPossibleActions()
+                if len(acts) > 0:
+                    if fixedTask == None: 
+                        ourAct = Support.randomFromList(acts)
+                    else:
+                        ourAct = acts[fixedTask]
+                    gameData.currentTasks += [ Task(ourAct[1], ourAct[0], pid, 10) ]
     
     def execute(self, gameData, gameInput, timeDelta):
         with gameInput.lock:
@@ -51,39 +101,25 @@ class Task(object):
     
     def doesMatch(self, actionList):
         print actionList
+        print self.neededAction
         for (pid, ac) in actionList.iteritems():
             if ac == self.neededAction:
                 return True
         return False
 
-class Control(object):
-    def __init__(self, playerId, name, id, type="pushButton", minValue=0, maxValue=10):
-        self.playerId = playerId
-        self.name = name
-        self.id = id
-        self.type = type
-        self.minValue = minValue
-        self.maxValue = maxValue
-    
-    def getActionList (self):
-        if self.type == "pushButton" :
-            # just one possible action
-            # id and user text : warp curvature to 4
-            return [(self.id, self.name)]
-        if self.type == "slider" :
-            # just one possible action
-            # id and user text : warp curvature to 4
-            it = []
-            for i in range(self.maxValue): 
-                it += [(self.id + "_" + str(i), self.name + " to " + str(i))]
-            return it                                 
 
 class EvaderData(object):
     def __init__(self):
         self.player = {}
         self.possibleControls = []
         self.currentTasks = []
+        self.freeControlId = 1
         pass
+    
+    def getFreeControlId(self):
+        yourId = self.freeControlId
+        self.freeControlId += 1
+        return yourId
     
     def createUser(self):
         pId = str(uuid.uuid1())
@@ -110,6 +146,13 @@ class EvaderData(object):
     def asJson(self):
         # return json.dumps ({ "player" : self.playerLocation, "boxes" : self.boxes })
         return json.dumps (self.currentTasks)
+    
+    def getUncompletedTasks(self):
+        return filter (lambda x: x.isComplete == False, self.currentTasks)
+
+    def getCompletedTasks(self):
+        return filter (lambda x: x.isComplete == True, self.currentTasks)
+
     
     def hasTasks (self, playerId):
         for t in self.currentTasks:
