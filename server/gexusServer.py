@@ -35,9 +35,12 @@ class Pong (CherryExposedBase):
 
     # the call http://localhost:8080/GameOne/input/23/23 is mapped to this one !
     @cherrypy.expose
-    def input(self, xMove, yMove):
-        return "Game One move " + str(xMove) + " : " + str(yMove)
+    def moveUp(self ):
+        print "move UP"
 
+    @cherrypy.expose
+    def moveDown(self ):
+        print "move Down"
 
 
 class Gexus(CherryExposedBase):
@@ -83,14 +86,19 @@ cherrypy.config.update({'server.socket_host':'192.168.1.33',
 
 appPath = os.path.abspath(os.path.dirname(__file__))
 cssPath = appPath + "/css/"
+jsPath = appPath + "/js/"
 
 
 # cherrypy.tree.mount(DoNothing(), '/',
 conf = { '/css/base.css' : {
                  'tools.staticfile.on': True,
                  'tools.staticfile.filename' : cssPath + 'base.css'
+        },
+        '/js/base.js' : {
+                 'tools.staticfile.on': True,
+                 'tools.staticfile.filename' : jsPath + 'base.js'
                  # 'tools.staticdir.index': 'index.html',
-             }}
+        }}
 
 
 cherrypy.quickstart(root, config=conf)
