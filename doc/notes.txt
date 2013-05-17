@@ -1,0 +1,2 @@
+- use no text / language at all -- if possible
+AS few hints as possible, players must discover how stuff works
