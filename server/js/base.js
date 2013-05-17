@@ -13,12 +13,9 @@ function checkForPositions() {
 			if (xmlHttp.readyState == 4) {
 				gameData = JSON.parse(xmlHttp.responseText);
 				// document.write( gameData["player"][0] );
-
-				 //= gameData["player"][0];
-
+				// = gameData["player"][0];
 				playerRep = document.getElementById("view")
-				playerRep.style.top = 100 - ( gameData["player"][0] * 8.0 );
-
+				playerRep.style.left = 100 - (gameData["player"][0] * 8.0);
 				// alert(gameData["player"][0]);
 			}
 		};
@@ -27,9 +24,47 @@ function checkForPositions() {
 
 }
 
+function WebSocketTest() {
+	if ("WebSocket" in window) {
+		console.log("puh, web sockets is supported");
+	} else {
+		// The browser doesn't support WebSocket
+		alert("WebSocket NOT supported by your Browser!");
+	}
+}
+
+function initWebSocket() {
+	if ("WebSocket" in window) {
+		// Let us open a web socket
+		// todo: query web socket uri from the server
+		var ws = new WebSocket("ws://192.168.1.33:8080/EvaderWs/ws");
+		ws.onopen = function() {
+			// Web Socket is connected, send data using send()
+			ws.send("Message to send");
+			// alert("Message is sent...");
+		};
+		ws.onmessage = function(evt) {
+			var received_msg = evt.data;
+			//console.log("Message is received...");
+
+			gameData = JSON.parse(received_msg);
+			playerRep = document.getElementById("view");
+			playerRep.style.left = 500 - (gameData["player"][0] * 40.0);
+		};
+		ws.onclose = function() {
+			// websocket is closed.
+			alert("Connection is closed...");
+		};
+	} else {
+		// The browser doesn't support WebSocket
+		alert("WebSocket NOT supported by your Browser!");
+	}
+}
+
 function enableGameStateCallback() {
-	window.setInterval(checkForPositions, 20);
+	WebSocketTest();
+	initWebSocket();
+	// window.setInterval(checkForPositions, 20);
 	console.log("interval set");
-	
 
 }

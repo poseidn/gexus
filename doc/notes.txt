@@ -10,6 +10,10 @@ the firefox for and is better ( ~ 500 ms ) but multiple clicks after one another
 
 "high speed questions seem to be out of the question with this. no pong ?
 
+Android 2.3 firefox knows WebSockets !
+Android 2.3 native browser does not ...
+
+
 Will a native android app be a lot faster ?
 
 Game which might still be possibe ?
@@ -25,6 +29,9 @@ Game which might still be possibe ?
 - evade game
     move up down or in the middle to evade incomping blocks
     multiple people can play at the same time
+    
+- clear the way
+    es müssen zahnräder so geschalten werden, dass eine flüssigkeit passieren kann
     
 - enterprise fernsteuerung 
     just like this game http://www.youtube.com/watch?v=aBfHhfxLNPE ?

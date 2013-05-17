@@ -5,20 +5,37 @@ import time
 import thread
 import threading
 import json
+import random
 
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
+from ws4py.server.cherrypyserver import WebSocketPlugin, WebSocketTool
+from ws4py.websocket import WebSocket
+from ws4py.messaging import TextMessage
+
+
+
+class ChatWebSocketHandler(WebSocket):
+    def received_message(self, m):
+        cherrypy.engine.publish('websocket-broadcast', m)
+
+    def closed(self, code, reason="A client left the room without a proper explanation."):
+        cherrypy.engine.publish('websocket-broadcast', TextMessage(reason))
 
 def runGame(gameName, gameLogic, gameData, gameInput):
     
     print "Running game thread for " + gameName
     
-    deltaT = 0.2
+    ## if this is too small, the webserver thread is blocked too often
+    deltaT = 0.1
     
     while True:
         print "Executing logic of game " + gameName
         gameLogic.execute(gameData, gameInput, deltaT)
+        
+        
+        cherrypy.engine.publish('websocket-broadcast', gameData.asJson())
         time.sleep(deltaT)
     
     pass
@@ -32,7 +49,7 @@ class GameDesc (object):
 
 
 class CherryExposedBase (object):
-    def __init__(self, makoLookup):
+    def __init__(self, makoLookup=None):
         self.m_makoLookup = makoLookup
         
     def getMakoLookup(self):
@@ -86,17 +103,9 @@ class Evader (CherryExposedBase):
 
     # the call http://localhost:8080/GameOne/input/23/23 is mapped to this one !
     @cherrypy.expose
-    def moveUp(self):
-        self.setPlayerInput("up")
+    def move(self, direction):
+        self.setPlayerInput(direction)
 
-    @cherrypy.expose
-    def moveMiddle(self):
-        self.setPlayerInput("middle")
-
-    @cherrypy.expose
-    def moveDown(self):
-        self.setPlayerInput("down")
-        
     def setPlayerInput(self, move):
         with self.gInput.lock:
             self.gInput.content [ 0] = move
@@ -110,29 +119,46 @@ class EvaderLogic(object):
     def __init__(self):
         pass
     
+    def spawnBoxes (self, layers, offset):
+        
+        boxList = []
+        
+        for i in range( layers ):            
+            for bi in range( 5 ):
+                if random.randint(0, 2) == 0:
+                    boxList += [ Box ( bi, i + offset )]
+
+        return boxList
+                
+        
+    
     def execute(self, gameData, gameInput, timeDelta):
         boxSpeed = 10.0
-        maxYLow = 0.0
-        maxYHigh = 10.0
+        maxXLow = 0.0
+        maxXHigh = 4.0
         
         # get a thread safe copy of the input, web threads might chance this
         
         with gameInput.lock:
             localGameInput = copy.deepcopy (gameInput.content)
         
+        # remove boxes below -5
+        
+        
         # move boxes
         for b in gameData.boxes:
-            b.location = (b.location[0] - timeDelta * boxSpeed, b.location[1])
+            b.location = (b.location[1] - timeDelta * boxSpeed, b.location[1])
         
         # apply player movements
         print localGameInput
         for (pId, pIn) in localGameInput.iteritems():
-            if (pIn == "up"):
-                gameData.playerLocation [ pId ] = maxYHigh
-            if (pIn == "middle"):
-                gameData.playerLocation [ pId ] = (maxYHigh - maxYLow) * 0.5
-            if (pIn == "down"):
-                gameData.playerLocation [ pId ] = maxYLow
+            gameData.playerLocation [ pId ] = pIn
+            #if (pIn == "up"):
+            #    gameData.playerLocation [ pId ] = maxXHigh
+            #if (pIn == "middle"):
+            #    gameData.playerLocation [ pId ] = (maxXHigh - maxXLow) * 0.5
+            #if (pIn == "down"):
+            #    gameData.playerLocation [ pId ] = maxXLow
 
 class EvaderData(object):
     def __init__(self):
@@ -170,6 +196,11 @@ class Gexus(CherryExposedBase):
 
 
 
+class WsExpose(CherryExposedBase):
+    @cherrypy.expose
+    def ws(self):
+        cherrypy.log("Handler created: %s" % repr(cherrypy.request.ws_handler))
+
 
 
 #                         tools.staticfile.on: True
@@ -189,6 +220,7 @@ root = Gexus(makoLookup)
 root.m_makoLookup = makoLookup
 root.Pong = Pong(makoLookup)
 root.Evader = Evader(makoLookup, evaderData, evaderInput)
+root.EvaderWs = WsExpose()
 
 cherrypy.config.update({'server.socket_host':'192.168.1.33',
                         'server.socket_port': 8080}  # # be root ot have 80 on *nix
@@ -198,6 +230,8 @@ appPath = os.path.abspath(os.path.dirname(__file__))
 cssPath = appPath + "/css/"
 jsPath = appPath + "/js/"
 
+WebSocketPlugin(cherrypy.engine).subscribe()
+cherrypy.tools.websocket = WebSocketTool()
 
 # cherrypy.tree.mount(DoNothing(), '/',
 conf = { '/css/base.css' : {
@@ -208,7 +242,11 @@ conf = { '/css/base.css' : {
                  'tools.staticfile.on': True,
                  'tools.staticfile.filename' : jsPath + 'base.js'
                  # 'tools.staticdir.index': 'index.html',
-        }}
+        },
+       '/EvaderWs': {
+            'tools.websocket.on': True,
+            'tools.websocket.handler_cls': ChatWebSocketHandler
+            }}
 
 
 
