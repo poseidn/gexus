@@ -9,6 +9,8 @@ import random
 import uuid
 import time
 
+import Evader
+
 from mako.template import Template
 from mako.lookup import TemplateLookup
 
@@ -79,11 +81,12 @@ class Pong (CherryExposedBase):
     def moveDown(self):
         print "move Down"
         
-class Evader (CherryExposedBase):
+class EvaderFrontend (CherryExposedBase):
     
-    def __init__(self, makoLookup, gameData, gameInput):
-        super (Evader, self).__init__(makoLookup)
+    def __init__(self, makoLookup, gameLogic, gameData, gameInput):
+        super (EvaderFrontend, self).__init__(makoLookup)
         self.gData = gameData
+        self.gLogic = gameLogic
         self.gInput = gameInput
     
     @cherrypy.expose
@@ -118,21 +121,30 @@ class Evader (CherryExposedBase):
         jsonState = json.dumps(gs) 
         return jsonState
 
+    @cherrypy.expose
+    def listControls(self, playerId):
+        playerControls = filter(lambda x : x.playerId == playerId, self.gData.possibleControls)
+        
+        dictList = []
+        for dd in playerControls:
+            dictList += [ dd.__dict__ ]
+        
+        asJson = json.dumps ( dictList )
+        return asJson
 
     @cherrypy.expose
     def registerPlayer(self):
-        pId = str(uuid.uuid1())
         
-        ## seconds in float
-        self.gData.player[ pId ] = { time.time() }
+        # # seconds in float
+        pId = self.gLogic.createUser(self.gData, True)
         print "Welcome new player " + pId
         return pId
 
     @cherrypy.expose
     def controlActivate(self, playerId, controlId):
-        self.setPlayerInput(playerId,"activate" + str(controlId))
+        self.setPlayerInput(playerId, controlId)
 
-    def setPlayerInput(self,playerId, move):
+    def setPlayerInput(self, playerId, move):
         with self.gInput.lock:
             self.gInput.content [ playerId] = move
 
@@ -178,14 +190,14 @@ class WsExpose(CherryExposedBase):
 
 makoLookup = TemplateLookup(directories=['html/'])  # use for py byetcode compile, module_directory='/tmp/mako_modules')
 
-evaderLogic = EvaderLogic()
-evaderData = EvaderData()
-evaderInput = EvaderInput()
+evaderLogic = Evader. EvaderLogic()
+evaderData = Evader.EvaderData()
+evaderInput = Evader.EvaderInput()
 
 root = Gexus(makoLookup)
 root.m_makoLookup = makoLookup
 root.Pong = Pong(makoLookup)
-root.Evader = Evader(makoLookup, evaderData, evaderInput)
+root.Evader = EvaderFrontend(makoLookup, evaderLogic, evaderData, evaderInput)
 root.EvaderWs = WsExpose()
 
 cherrypy.config.update({'server.socket_host':'192.168.1.33',
@@ -216,10 +228,10 @@ conf = {
             'tools.websocket.on': True,
             'tools.websocket.handler_cls': ChatWebSocketHandler},
         '/' : {
-                 #'tools.sessions.on' : True,
-                 #'tools.sessions.storage_type' : 'file',
-                 #'tools.sessions.storage_path' : "/home/poseidon/tmp/",
-                 #'tools.sessions.timeout' : 60
+                 # 'tools.sessions.on' : True,
+                 # 'tools.sessions.storage_type' : 'file',
+                 # 'tools.sessions.storage_path' : "/home/poseidon/tmp/",
+                 # 'tools.sessions.timeout' : 60
         }
         }
 

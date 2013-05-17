@@ -7,13 +7,13 @@ function fireGet(target) {
 function fireGetSync(target) {
 	xmlHttp = new XMLHttpRequest();
 	xmlHttp.open("GET", target, false);
-	xmlHttp.send( null);
-	
+	xmlHttp.send(null);
+
 	return xmlHttp.responseText;
 }
 
-function activateButton( buttonId ) {
-	fireGet( "controlActivate/" + g_userId + "/" +buttonId)
+function activateButton(buttonId) {
+	fireGet("controlActivate/" + g_userId + "/" + buttonId)
 }
 
 function checkForTask() {
@@ -33,7 +33,7 @@ function checkForTask() {
 				} else {
 					playerTask.innerHTML = gameData.playerTask.taskName;
 				}
-				
+
 				playerId = document.getElementById("playerId");
 				playerId.innerHTML = gameData.playerId
 				// alert(gameData["player"][0]);
@@ -81,13 +81,40 @@ function initWebSocket() {
 	}
 }
 
+function createControls(controls) {
+	var controlContainer = document.getElementById("controlContainer");
+
+	var allContent = "";
+
+	for (i in controls) {
+		var cnt = controls[i];
+
+		console.log(cnt)
+		console.log("Creating control " + cnt["name"] + " of type "
+				+ cnt["type"]);
+		if (cnt["type"] == "pushButton") {
+			allContent += "<var class='EvaderControl' ";
+			allContent += "onClick='activateButton(" + cnt["id"] + ")' ";
+			allContent += ">" + cnt["name"];
+			allContent += "</var>";
+		}
+		
+	}
+
+	controlContainer.innerHTML = allContent
+
+}
+
 function enableGameStateCallback() {
 	// WebSocketTest();
 	// initWebSocket();
 	g_userId = fireGetSync("registerPlayer");
-	console.log( "players id will be " + g_userId);
-	
-	window.setInterval(checkForTask, 1000);
+
+	var userControls = JSON.parse(fireGetSync("listControls/" + g_userId));
+	createControls(userControls);
+	console.log("players id will be " + g_userId);
+
+	window.setInterval(checkForTask, 4000);
 	console.log("interval set");
 
 }

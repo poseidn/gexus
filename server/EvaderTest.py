@@ -4,15 +4,16 @@ import Evader
 class EvaderTest(unittest.TestCase):
 
     def test_registerUser(self):
+        el = Evader.EvaderLogic()
         ed = Evader.EvaderData()
-        uid = ed.createUser()
+        uid = el.createUser(ed)
         self.assertFalse(uid == "")
         self.assertEqual(len(ed.player), 1)
 
     def test_generateTask(self):
         ed = Evader.EvaderData()
         el = Evader.EvaderLogic()
-        uid1 = ed.createUser()
+        uid1 = el.createUser(ed)
         # uid2 = ed.createUser()
 
         ed.addControl (Evader.Control(uid1, "Flux Control", "1"))
@@ -26,16 +27,16 @@ class EvaderTest(unittest.TestCase):
         ed = Evader.EvaderData()
         el = Evader.EvaderLogic()
         
-        uid1 = ed.createUser()
+        uid1 = el.createUser(ed)
          
         el.generateControl(ed, uid1)
 
     def test_matchInputToTask(self):
         ed = Evader.EvaderData()
         el = Evader.EvaderLogic()
-        uid1 = ed.createUser()
-        uid2 = ed.createUser()
-        uid3 = ed.createUser()
+        uid1 = el.createUser(ed)
+        uid2 = el.createUser(ed)
+        uid3 = el.createUser(ed)
 
         ed.addControl (Evader.Control(uid1, "Flux Control", "1"))
         ed.addControl (Evader.Control(uid2, "My Flux Control", "2"))
@@ -54,8 +55,8 @@ class EvaderTest(unittest.TestCase):
     def test_executeLogic(self):
         ed = Evader.EvaderData()
         el = Evader.EvaderLogic()
-        uid1 = ed.createUser()
-        uid2 = ed.createUser()
+        uid1 = el.createUser(ed)
+        uid2 = el.createUser(ed)
 
         ed.addControl (Evader.Control(uid1, "Flux Control", "1"))
         ed.addControl (Evader.Control(uid2, "My Flux Control", "2"))
@@ -81,8 +82,8 @@ class EvaderTest(unittest.TestCase):
     def test_addRemoveControls(self):
         ed = Evader.EvaderData()
         el = Evader.EvaderLogic()
-        uid1 = ed.createUser()
-        uid2 = ed.createUser()
+        uid1 = el.createUser(ed)
+        uid2 = el.createUser(ed)
 
         ed.addControl (Evader.Control(uid1, "Flux Control", "0"))
         ed.addControl (Evader.Control(uid2, "My Flux Control", "1"))

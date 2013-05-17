@@ -3,6 +3,7 @@ import time
 import random
 import threading
 import copy
+import json
 
 import Support
 
@@ -14,6 +15,9 @@ class Control(object):
         self.type = type
         self.minValue = minValue
         self.maxValue = maxValue
+    
+    def asJason(self):
+        return json.dumps(self.__dict__)
     
     def getActionList (self):
         if self.type == "pushButton" :
@@ -39,7 +43,18 @@ class EvaderLogic(object):
         
         pass
     
-
+    def createUser(self, gameData, createControls=False):
+        pId = str(uuid.uuid1())
+        
+        # # seconds in float
+        gameData.player[ pId ] = { time.time() }
+        
+        if createControls == True:
+            for i in range (3):
+                contr = self.generateControl(gameData, pId)
+                gameData.possibleControls += [ contr ]
+        
+        return pId
     
     def generateControl(self, gameData, playerId):
         act = Support.randomFromList(self.actionName)
@@ -54,7 +69,7 @@ class EvaderLogic(object):
     def generateTasks (self , gameData, fixedTask=None):
         for (pid, pdata) in gameData.player.iteritems():
             if not gameData.hasTasks (pid):
-                print "generating task for player " + pid
+                print "Generating task for player " + pid
                 
                 acts = gameData.getPossibleActions()
                 if len(acts) > 0:
@@ -63,6 +78,8 @@ class EvaderLogic(object):
                     else:
                         ourAct = acts[fixedTask]
                     gameData.currentTasks += [ Task(ourAct[1], ourAct[0], pid, 10) ]
+                    print "> Task added"
+
     
     def execute(self, gameData, gameInput, timeDelta):
         with gameInput.lock:
@@ -121,13 +138,6 @@ class EvaderData(object):
         self.freeControlId += 1
         return yourId
     
-    def createUser(self):
-        pId = str(uuid.uuid1())
-        
-        # # seconds in float
-        self.player[ pId ] = { time.time() }
-        return pId
-
     def addControl(self, control):
         self.possibleControls += [ control]
         
