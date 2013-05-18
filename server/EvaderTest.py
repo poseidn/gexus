@@ -10,17 +10,33 @@ class EvaderTest(unittest.TestCase):
         self.assertFalse(uid == "")
         self.assertEqual(len(ed.player), 1)
 
-    def test_generateTask(self):
+    def test_generateTaskCompleteTasks(self):
         ed = Evader.EvaderData()
-        el = Evader.EvaderLogic()
+        el = Evader.EvaderLogic( False)
         uid1 = el.createUser(ed)
         # uid2 = ed.createUser()
 
         ed.addControl (Evader.Control(uid1, "Flux Control", "1"))
-        el.generateTasks (ed)
-        self.assertEqual(len(ed.currentTasks), 1)
         
+        # # task will run for 10 secs
+        el.generateTasks (ed, None, 10)
+        self.assertEqual(len(ed.currentTasks), 1)
+        self.assertEqual(ed.currentTasks[0].isFailed , False)
+        self.assertEqual(ed.currentTasks[0].isComplete , False)
+        self.assertEqual(ed.currentTasks[0].timeRunning , 0.0)
         self.assertEqual(ed.currentTasks[0].shownToPlayer, uid1) 
+        
+        for i in range (10):
+            el.execute (ed, Evader.EvaderInput(), 1.2)
+
+        self.assertEqual(len(ed.currentTasks), 1)
+        self.assertEqual(ed.currentTasks[0].shownToPlayer, uid1) 
+        self.assertEqual(ed.currentTasks[0].isFailed , True)
+        self.assertEqual(ed.currentTasks[0].isComplete , True)
+        self.assertTrue(ed.currentTasks[0].timeRunning  > 10.0)
+        
+        
+        
         # self.assertEqual( ed.currentTasks[1].shownToPlayer, uid1 ) 
 
     def test_generateControlsForPlayer(self):

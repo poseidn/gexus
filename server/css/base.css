@@ -68,7 +68,7 @@ A:hover {
 	border-style: solid;
 	border-width: 2%;
 	border-color: #aaaaaa;
-	background-color: #dd3333;
+	background-color: rgb(0, 200, 0);
 	/*margin: 5%;
     padding: 20px;
     padding-top: 40px;
@@ -82,6 +82,7 @@ A:hover {
 
 .EvaderDebug {
 	float: bottom;
+	font-size: small;
 }
 
 .EvaderControl {
@@ -92,8 +93,9 @@ A:hover {
 	float: left;
 	margin: 10px;
 	/*padding: 10px;*/
-	height: 18%;
+	height: 12%;
 	width: 40%;
+	font-family: monospace;
 	border-style: solid;
 	border-width: 2%;
 	border-color: #aaaaaa;
@@ -103,7 +105,8 @@ A:hover {
     padding-top: 40px;
     padding-bottom: 40px;*/
 	/*font-size: large;*/
-	vertical-align: center;
+	line-height: 18px;
+	vertical-align: middle;
 	text-align: center;
 	background-color: #666666;
 	background-color: #666666;
@@ -126,4 +129,8 @@ A:hover {
 	border-style: solid;
 	width: 18%;
 	border-width: 2%;
+}
+
+.EvaderSubControlActive {
+	background: green;
 }

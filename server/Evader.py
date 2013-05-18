@@ -34,12 +34,14 @@ class Control(object):
 
 
 class EvaderLogic(object):
-    def __init__(self):
+    def __init__(self, autoCreateTasks=True, minTaskTime=8, maxTaskTime=20):
         
         self.actionName = ["Purge", "Activate", "Dismantle", "Engage", "Disengage", "Mismatch", "Mess-up"]
         self.firstName = ["", "", "", "Forward", "Backward", "Minor", "Starbird", "Internal", "External" ]
         self.secondName = ["Beam", "Fire", "Cooling", "", "", "", "", "", "" ]
         self.thirdName = ["Manifold", "Confinement", "Shielding", "Extraciter", "Preglobalizer", "Intrarectifier" ]
+        self.autoCreateTasks = autoCreateTasks
+        self.taskTime = (minTaskTime, maxTaskTime)
         
         pass
     
@@ -50,7 +52,7 @@ class EvaderLogic(object):
         gameData.player[ pId ] = { time.time() }
         
         if createControls == True:
-            for i in range (3):
+            for i in range (8):
                 contr = self.generateControl(gameData, pId)
                 gameData.possibleControls += [ contr ]
         
@@ -66,7 +68,7 @@ class EvaderLogic(object):
         print "Generated control with name " + fullName
         return Control(playerId, fullName, str(gameData.getFreeControlId()))
     
-    def generateTasks (self , gameData, fixedTask=None):
+    def generateTasks (self , gameData, fixedTask=None, fixedTime=None):
         for (pid, pdata) in gameData.player.iteritems():
             if not gameData.hasTasks (pid):
                 print "Generating task for player " + pid
@@ -77,7 +79,13 @@ class EvaderLogic(object):
                         ourAct = Support.randomFromList(acts)
                     else:
                         ourAct = acts[fixedTask]
-                    gameData.currentTasks += [ Task(ourAct[1], ourAct[0], pid, 10) ]
+                        
+                    if fixedTime == None:
+                        runtime = random.randint(self.taskTime[0], self.taskTime[1])
+                    else:
+                        runtime = fixedTime
+                        
+                    gameData.currentTasks += [ Task(ourAct[1], ourAct[0], pid, runtime) ]
                     print "> Task added"
 
     
@@ -95,8 +103,15 @@ class EvaderLogic(object):
                     print "Task completed"
                 else:
                     t.timeRunning += timeDelta
+            
+            # is this taks overdue ?
+            if t.timeRunning > t.maxTime:
+                t.complete(True)
         
-        self.generateTasks(gameData)
+        if self.autoCreateTasks:
+            self.generateTasks(gameData)
+            
+        print "Failed tasks is " + str (len(gameData.getFailedTasks()))
             # if (pIn == "up"):
             #    gameData.playerLocation [ pId ] = maxXHigh
             # if (pIn == "middle"):
@@ -112,9 +127,12 @@ class Task(object):
         self.maxTime = maxTime
         self.timeRunning = 0.0
         self.isComplete = False
+        self.isFailed = False
+        self.id = str(uuid.uuid1())
     
-    def complete (self):
+    def complete (self, failed=False):
         self.isComplete = True
+        self.isFailed = failed
     
     def doesMatch(self, actionList):
         print actionList
@@ -162,6 +180,10 @@ class EvaderData(object):
 
     def getCompletedTasks(self):
         return filter (lambda x: x.isComplete == True, self.currentTasks)
+
+    def getFailedTasks(self):
+        return filter (lambda x: x.isFailed == True, self.currentTasks)
+
 
     
     def hasTasks (self, playerId):

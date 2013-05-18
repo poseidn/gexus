@@ -31,7 +31,14 @@ function checkForTask() {
 				if (gameData.playerTask == 0) {
 					playerTask.innerHTML = "- no task - ";
 				} else {
-					playerTask.innerHTML = gameData.playerTask.taskName;
+
+					if (gameData.playerTask.id != g_lastTaskAction) {
+						// received a new task, setup everyting
+						g_lastTaskAction = gameData.playerTask.id;
+						startCommandCountdown(gameData.playerTask.maxTime);
+						playerTask.innerHTML = gameData.playerTask.taskName;
+					}
+
 				}
 
 				playerId = document.getElementById("playerId");
@@ -98,16 +105,56 @@ function createControls(controls) {
 			allContent += ">" + cnt["name"];
 			allContent += "</var>";
 		}
-		
+
 	}
 
 	controlContainer.innerHTML = allContent
 
 }
 
+function callbackCountdown() {
+	g_currentCommandTime -= g_commandIntervalMs * 0.001;
+
+	var playerTask = document.getElementById("playerTask");
+
+	if (g_currentCommandTime < 0.0) {
+		console.log("Command failed !!");
+		playerTask.innerHTML = "-- NOT COMPLETED --";
+		clearInterval(g_commandInterval);
+		return;
+	}
+
+	console.log("Current command has " + g_currentCommandTime + " second left");
+
+	// update the color of the thingy
+	ratio = g_currentCommandTime / g_fullCommandTime;
+	var maxGreen = 250.0;
+	var maxRed = 250.0;
+
+	var green = Math.round((ratio) * maxGreen);
+	var red = Math.round((1.0 - ratio) * maxRed);
+
+	var rgbString = "rgb(" + red + "," + green + ",0)"
+
+	// console.log(playerTask.style);
+	playerTask.style.backgroundColor = rgbString;
+	// playerTask.innerHTML = rgbString;
+}
+
+function startCommandCountdown(timeInSeconds) {
+	g_currentCommandTime = timeInSeconds;
+	g_fullCommandTime = timeInSeconds;
+
+	g_commandIntervalMs = 200;
+
+	g_commandInterval = window.setInterval(callbackCountdown,
+			g_commandIntervalMs);
+}
+
 function enableGameStateCallback() {
 	// WebSocketTest();
 	// initWebSocket();
+	g_lastTaskAction = ""
 	g_userId = fireGetSync("registerPlayer");
 
 	var userControls = JSON.parse(fireGetSync("listControls/" + g_userId));

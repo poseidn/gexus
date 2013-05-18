@@ -2,12 +2,13 @@
 <html>
 <link rel="stylesheet" type="text/css" href="../../css/base.css"
 	media="screen" />
+    <script type="text/javascript" src="../../js/base.js">  </script>
 
-<body onLoad="enableGameStateCallback()">
+
+<body onLoad="startCommandCountdown( 10.0 )">
 	<div class="header"></div>
 
 	<div id="EvaderControlArea">
-
 		<div id="playerTask" class="EvaderCommand">Purge Vivid Filter</div>
 
 		<div id="controlContainer">
@@ -18,7 +19,7 @@
 				<div class="EvaderSubControlText">Eject Bullshit</div>
 				<div class="EvaderSubControl">1</div>
 				<div class="EvaderSubControl">2</div>
-				<div class="EvaderSubControl">3</div>
+				<div class="EvaderSubControl EvaderSubControlActive">3</div>
 				<div class="EvaderSubControl">4</div>
 				<div class="EvaderSubControl">5</div>
 			</div>
@@ -26,5 +27,6 @@
 		</div>
 
 		<div id="playerId" class="EvaderDebug">PlayerId Debug</div>
+	</div>
 </body>
 </html>
