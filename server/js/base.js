@@ -17,7 +17,7 @@ function activateButton(buttonId) {
 }
 
 function checkForTask() {
-	console.log("loading game state");
+	// console.log("loading game state");
 	xmlHttp = new XMLHttpRequest();
 	if (xmlHttp) {
 		xmlHttp.open('GET', 'gameState/' + g_userId, true);
@@ -34,9 +34,18 @@ function checkForTask() {
 
 					if (gameData.playerTask.id != g_lastTaskAction) {
 						// received a new task, setup everyting
+						console.log("Received new task");
 						g_lastTaskAction = gameData.playerTask.id;
 						startCommandCountdown(gameData.playerTask.maxTime);
 						playerTask.innerHTML = gameData.playerTask.taskName;
+					} else {
+						// are we complete now ?
+						if ((gameData.playerTask.isComplete == true)
+								&& (gameData.playerTask.isFailed == false)) {
+							stopCommandCountdown();
+							playerTask.innerHTML = "-- COMPLETED --"
+							playerTask.style.backgroundColor = "rgb(0,250,0)";
+						}
 					}
 
 				}
@@ -96,7 +105,7 @@ function createControls(controls) {
 	for (i in controls) {
 		var cnt = controls[i];
 
-		console.log(cnt)
+		// console.log(cnt)
 		console.log("Creating control " + cnt["name"] + " of type "
 				+ cnt["type"]);
 		if (cnt["type"] == "pushButton") {
@@ -120,11 +129,12 @@ function callbackCountdown() {
 	if (g_currentCommandTime < 0.0) {
 		console.log("Command failed !!");
 		playerTask.innerHTML = "-- NOT COMPLETED --";
-		clearInterval(g_commandInterval);
+		stopCommandCountdown();
 		return;
 	}
 
-	console.log("Current command has " + g_currentCommandTime + " second left");
+	// console.log("Current command has " + g_currentCommandTime + " second
+	// left");
 
 	// update the color of the thingy
 	ratio = g_currentCommandTime / g_fullCommandTime;
@@ -141,7 +151,16 @@ function callbackCountdown() {
 	// playerTask.innerHTML = rgbString;
 }
 
+function stopCommandCountdown() {
+	if (g_commandInterval != 0) {
+		window.clearInterval(g_commandInterval);
+	}
+}
+
 function startCommandCountdown(timeInSeconds) {
+
+	stopCommandCountdown();
+
 	g_currentCommandTime = timeInSeconds;
 	g_fullCommandTime = timeInSeconds;
 
@@ -154,6 +173,7 @@ function startCommandCountdown(timeInSeconds) {
 function enableGameStateCallback() {
 	// WebSocketTest();
 	// initWebSocket();
+	g_commandInterval = 0;
 	g_lastTaskAction = ""
 	g_userId = fireGetSync("registerPlayer");
 
@@ -161,7 +181,7 @@ function enableGameStateCallback() {
 	createControls(userControls);
 	console.log("players id will be " + g_userId);
 
-	window.setInterval(checkForTask, 4000);
+	window.setInterval(checkForTask, 1000);
 	console.log("interval set");
 
 }

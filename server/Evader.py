@@ -34,7 +34,7 @@ class Control(object):
 
 
 class EvaderLogic(object):
-    def __init__(self, autoCreateTasks=True, minTaskTime=8, maxTaskTime=20):
+    def __init__(self, autoCreateTasks=True, minTaskTime=8, maxTaskTime=20, randomizeTaskCreation=None):
         
         self.actionName = ["Purge", "Activate", "Dismantle", "Engage", "Disengage", "Mismatch", "Mess-up"]
         self.firstName = ["", "", "", "Forward", "Backward", "Minor", "Starbird", "Internal", "External" ]
@@ -42,6 +42,9 @@ class EvaderLogic(object):
         self.thirdName = ["Manifold", "Confinement", "Shielding", "Extraciter", "Preglobalizer", "Intrarectifier" ]
         self.autoCreateTasks = autoCreateTasks
         self.taskTime = (minTaskTime, maxTaskTime)
+        self.randomizeTaskCreation = randomizeTaskCreation
+        # seconds
+        self.MaxPlayerTimeout = 4.0
         
         pass
     
@@ -49,7 +52,7 @@ class EvaderLogic(object):
         pId = str(uuid.uuid1())
         
         # # seconds in float
-        gameData.player[ pId ] = { time.time() }
+        gameData.player[ pId ] = { "lastConnection":  time.time() }
         
         if createControls == True:
             for i in range (8):
@@ -93,6 +96,21 @@ class EvaderLogic(object):
         with gameInput.lock:
             localGameInput = copy.deepcopy (gameInput.content)
         
+        # check for players with timeout
+        playerToKill = []
+        
+        for (pId, pData) in gameData.player.iteritems():
+            lastCon = pData["lastConnection"]
+            timeGone = time.time() - lastCon
+            
+            if timeGone > self.MaxPlayerTimeout:
+                print "Player " + str (pId) + " left"
+                playerToKill += [pId]
+        
+        for pId in playerToKill:
+            del gameData.player[pId]
+            gameData.removeControlsOfPlayer(pId)
+        
         print "Current tasks in list" + str (len (gameData.currentTasks))
         
         for t in gameData.currentTasks:
@@ -109,7 +127,12 @@ class EvaderLogic(object):
                 t.complete(True)
         
         if self.autoCreateTasks:
-            self.generateTasks(gameData)
+            if not self.randomizeTaskCreation == None:
+                print "r = " + str(random.randint (0, self.randomizeTaskCreation))
+                if random.randint (0, self.randomizeTaskCreation) == 0: 
+                    self.generateTasks(gameData)
+            else:
+                self.generateTasks(gameData)
             
         print "Failed tasks is " + str (len(gameData.getFailedTasks()))
             # if (pIn == "up"):
@@ -168,7 +191,7 @@ class EvaderData(object):
     def removeControlsOfPlayer (self, playerId):
         # todo: also the pending task for this players controls
         
-        self.possibleControls = filter(lambda x: x.playerId == playerId, self.possibleControls)
+        self.possibleControls = filter(lambda x: x.playerId != playerId, self.possibleControls)
 
     # # make thread safe
     def asJson(self):
@@ -184,7 +207,10 @@ class EvaderData(object):
     def getFailedTasks(self):
         return filter (lambda x: x.isFailed == True, self.currentTasks)
 
-
+    def updatePlayerTime (self , playerId):
+        # is in seconds
+        self.player[ playerId ]["lastConnection"] = time.time() 
+        
     
     def hasTasks (self, playerId):
         for t in self.currentTasks:

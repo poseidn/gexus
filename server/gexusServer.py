@@ -105,10 +105,11 @@ class EvaderFrontend (CherryExposedBase):
         # return mytemplate.render()
         taskForPlayer = 0
         
+        self.gData.updatePlayerTime(playerId);
+        
         for ts in self.gData.currentTasks:
             if ts.shownToPlayer == playerId:
                 taskForPlayer = ts
-        
         
         if taskForPlayer == 0:
             taskForPlayerSer = taskForPlayer
@@ -190,7 +191,7 @@ class WsExpose(CherryExposedBase):
 
 makoLookup = TemplateLookup(directories=['html/'])  # use for py byetcode compile, module_directory='/tmp/mako_modules')
 
-evaderLogic = Evader. EvaderLogic()
+evaderLogic = Evader. EvaderLogic(randomizeTaskCreation=4)
 evaderData = Evader.EvaderData()
 evaderInput = Evader.EvaderInput()
 
