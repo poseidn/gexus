@@ -129,7 +129,7 @@ class EvaderFrontend (CherryExposedBase):
         for dd in playerControls:
             dictList += [ dd.__dict__ ]
         
-        asJson = json.dumps ( dictList )
+        asJson = json.dumps (dictList)
         return asJson
 
     @cherrypy.expose
@@ -200,7 +200,10 @@ root.Pong = Pong(makoLookup)
 root.Evader = EvaderFrontend(makoLookup, evaderLogic, evaderData, evaderInput)
 root.EvaderWs = WsExpose()
 
-cherrypy.config.update({'server.socket_host':'192.168.1.33',
+# serverHost = '192.168.1.33'
+serverHost = '127.0.0.1'
+
+cherrypy.config.update({'server.socket_host':serverHost,
                         'server.socket_port': 8080}  # # be root ot have 80 on *nix
                         )
 
